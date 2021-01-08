@@ -14,23 +14,27 @@ public class ServerThread extends Thread {
 	ArrayList<Socket> connections = new ArrayList<Socket>();
 	ObjectInputStream input[] = new ObjectInputStream[5];
 	ObjectOutputStream output[] = new ObjectOutputStream[5];
-	FileInputStream fileIn;
-	FileOutputStream fileOut;
-	File file = null;
 	Boolean isListenMode = false;
-	boolean isWriteActivated = false;
 
 	public ServerThread(int port) throws IOException {
 		runPeerServer(port);
 
 	}
 
+	public void setConnection() throws IOException {
+		Scanner scan = new Scanner(System.in);
+		System.out.println("To Which port ?:");
+		int port = Integer.parseInt(scan.nextLine());
+		System.out.println("To Which host ?:");
+		String host = scan.nextLine();
+		runThread(port, host);
+	}
+
 	public void runThread(int portDestination, String host) throws IOException {
 		int i;
-		boolean added = false;
+		Boolean added = false;
 		Socket socket = new Socket(host, portDestination);
-		for (i = 0; i < output.length && !added; i++) {// Run through output[] and place the current new socket output
-														// stream into the new emplacement
+		for (i = 0; i < output.length && !added; i++) {
 			if (output[i] == null) {
 				output[i] = new ObjectOutputStream(socket.getOutputStream());
 				System.out.println("Waiting for connection..");
@@ -41,15 +45,14 @@ public class ServerThread extends Thread {
 		connections.add(socket);
 		System.out.println("You are now connected with: " + socket.getInetAddress() + " on port " + socket.getPort());
 
-		for (int j = 0; j < input.length; j++) { // Run through input[] and place the current new socket input stream
-													// into the new emplacement
+		for (int j = 0; j < input.length; j++) {
 			if (input[j] == null) {
-				this.input[j] = new ObjectInputStream(socket.getInputStream()); // This ligne blocks inputstream to read
-																				// File !******
+				this.input[j] = new ObjectInputStream(socket.getInputStream());
 				break;
 			}
 
 		}
+
 		parser();
 	}
 
@@ -57,7 +60,7 @@ public class ServerThread extends Thread {
 		String text;
 		String text2;
 		try {
-			serverSocket = new ServerSocket(port, 5);// 5 Peer allowed to connect to this server
+			serverSocket = new ServerSocket(port, 5);// 3 Peer allowed to connect to this server
 			System.out.println("Listening on:" + serverSocket.getLocalPort());
 			parser();
 		} catch (Exception e) {
@@ -78,114 +81,43 @@ public class ServerThread extends Thread {
 		}
 	}
 
-	public void readCommand(String[] inp) throws IOException {
-		switch (inp[0]) {
+	public void readCommand(String inp) throws IOException {
+		switch (inp) {
 		case "set":
-			runThread(Integer.parseInt(inp[1]), inp[2]);
+			setConnection();
 			break;
 		case "list":
 			printPeers();
 			break;
 		case "help":
 			System.out.println(
-					"Write :\n| 'set' + <port> + <host> to set a connection with a peer \n| 'list' to print the peers \n| 'Q' to quit \n| 'chat' to send message to all connected peers \n| 'file' to send a file to a specific peer");
+					"write 'set' to set a connection with a peer | 'list' to print the peers | 'Q' to quit | 'chat' to send message to all connected peers");
 			break;
 		case "chat":
-			chatMode();
-			break;
-		case "file":
-			fileMode();
+			startChat();
 			break;
 		case "Q":
 			System.out.println("BYE !");
 			System.exit(1);
 			break;
 		default:
-			System.err.println("Command not recognized\n");
+			System.err.print("Command not recognized\n");
 		}
 
 	}
 
 	public void parser() throws IOException {
 		Scanner scan = new Scanner(System.in);
-		String inp[] = {};
+		String inp = "";
 		while (true) {
 			System.out.print("->");
-			inp = scan.nextLine().split(" ", 4);
+			inp = scan.nextLine();
 			readCommand(inp);
 		}
 
 	}
 
-	public void fileMode() throws NumberFormatException, IOException {
-		System.out.println("File mode\n<File localtion> + <index connection*>");
-		Scanner scan = new Scanner(System.in);
-		String in[] = {};
-		int socketIndex = 0;
-		while (true) {
-			System.out.print("FM->");
-			in = scan.nextLine().split(" ", 3);// Split used to creat a kind of 'arguments parser'
-			socketIndex = Integer.parseInt(in[1]);
-			if (in[0].equals("DL")) {// Download
-				writeFile(connections.get(socketIndex).getInputStream());
-			} else {
-				readFile(in[0], Integer.parseInt(in[1]));
-			}
-		}
-	}
-
-	public void readFile(String fileLocation, int socketIndex) throws IOException {
-		file = new File(fileLocation);
-		FileInputStream fis = new FileInputStream(file);
-		byte[] buffer = new byte[(int) file.length()];
-		while (fis.read(buffer) != -1) {
-			System.out.println(buffer.length);
-			output[socketIndex].write(buffer);
-		}
-		System.out.println("Done");
-		fis.close();
-		System.out.println("FileOutputStream closed");
-		output[socketIndex].close();
-		System.out.println("OutputStream closed");
-	}
-
-	public void writeFile(InputStream is) throws IOException {
-
-		FileOutputStream fos = null;
-		long filesize = 600000000;
-		byte[] buffer = new byte[(int) filesize];
-		int read = 0;
-		int totalRead = 0;
-		long rest = filesize;
-
-		try {
-			fos = new FileOutputStream("Output.txt");
-			System.out.println("Waiting for packets..");
-			while ((read = is.read(buffer, 0, (int) Math.min(buffer.length, rest))) != -1) {
-				totalRead += read;
-				rest -= read;
-				System.out.println("read " + totalRead + " bytes.");
-				fos.write(buffer, 0, read);
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			fos.close();
-			System.out.println("FileOutputStream closed");
-			is.close();
-			System.out.println("InputStream closed");
-		}
-	}
-
-	/*
-	 * 
-	 * 
-	 * Chat related methods
-	 * 
-	 * 
-	 */
-
-	public void chatMode() throws IOException {
+	public void startChat() throws IOException {
 		String outMsg = "";
 		Scanner scan = new Scanner(System.in);
 		readMsg();
@@ -193,11 +125,7 @@ public class ServerThread extends Thread {
 			System.out.print(">>");
 			outMsg = scan.nextLine();
 			try {
-				if (!isListenMode) {
-					sendMsg(outMsg);
-				} else {
-					System.out.println("You cant send messages, you are in Listen mode");
-				}
+				sendMsg(outMsg);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -209,22 +137,24 @@ public class ServerThread extends Thread {
 	public void sendMsg(String outMsg) throws IOException {
 
 		Boolean bounded = false;
-		for (int i = 0; i != output.length && !bounded; i++) {
+		if (!isListenMode) {// If Listen mode, we prevent from writting messages
+			for (int i = 0; i != output.length && !bounded; i++) {
 
-			output[i].writeUTF(outMsg);
-			output[i].flush();
-			if (output[i + 1] == null) { // If the next stream element is empty, just stop the loop
-				bounded = true;
+				output[i].writeUTF(outMsg);
+				output[i].flush();
+				if (output[i + 1] == null) { // If the next stream element is empty, just stop the loop
+					bounded = true;
+				}
 			}
+		} else {
+			System.out.println("You cant send messages, you are in Listen mode");
 		}
-
 	}
 
 	public void readMsg() throws IOException {
 		Thread t[] = new Thread[input.length];// Created an empty array of thread
 		int x = 0;
-		while (input[x] != null) {// While there is a input stream, we keep creating a thread for each peer
-									// listening
+		while (input[x] != null) {
 			int i = x;// variable needed to passe it as a local variable in the new Thread ran
 			t[x] = new Thread(new Runnable() {// Start the Thread for that input socket
 
@@ -235,18 +165,16 @@ public class ServerThread extends Thread {
 						try {
 							msg = input[i].readUTF();
 							System.out.println(msg);
-							if (msg.equals("STOP")) {// If a Thread reads STOP, it will go back in the parser in Listen
-														// mode
+							if (msg.equals("STOP")) {// If a Thread reads STOP, it will go back in the parser in Listen mode
 								System.out.println("Listen mode activated !");
 								isListenMode = true;
 							}
 						} catch (IOException e) {
 							e.printStackTrace();
-							t[i].interrupt();// If the connection is lost, we stop the thread
+							t[i].stop();// If the connection is lost, we stop the thread
 							try {
 								parser();// Then go back to parser
 							} catch (IOException e1) {
-								// TODO Auto-generated catch block
 								e1.printStackTrace();
 							}
 						}
