@@ -44,11 +44,9 @@ public class ServerThread extends Thread {
 		for (int j = 0; j < input.length; j++) { // Run through input[] and place the current new socket input stream
 													// into the new emplacement
 			if (input[j] == null) {
-				this.input[j] = new ObjectInputStream(socket.getInputStream()); // This ligne blocks inputstream to read
-																				// File !******
+				this.input[j] = new ObjectInputStream(socket.getInputStream());
 				break;
 			}
-
 		}
 		parser();
 	}
@@ -61,7 +59,6 @@ public class ServerThread extends Thread {
 			System.out.println("Listening on:" + serverSocket.getLocalPort());
 			parser();
 		} catch (Exception e) {
-			// TODO: handle exception
 		}
 
 	}
@@ -124,9 +121,9 @@ public class ServerThread extends Thread {
 		int socketIndex = 0;
 		while (true) {
 			System.out.print("FM->");
-			in = scan.nextLine().split(" ", 3);// Split used to creat a kind of 'arguments parser'
+			in = scan.nextLine().split(" ", 3);// Split input to creat a kind of 'arguments parser'
 			socketIndex = Integer.parseInt(in[1]);
-			if (in[0].equals("DL")) {// Download
+			if (in[0].equals("DL")) {// Download mode -> the peer will wait for incoming data
 				writeFile(connections.get(socketIndex).getInputStream());
 			} else {
 				readFile(in[0], Integer.parseInt(in[1]));
@@ -168,7 +165,6 @@ public class ServerThread extends Thread {
 				fos.write(buffer, 0, read);
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			fos.close();
 			System.out.println("FileOutputStream closed");
