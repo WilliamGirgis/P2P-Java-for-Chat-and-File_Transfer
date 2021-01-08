@@ -85,7 +85,7 @@ public class ServerThread extends Thread {
 			break;
 		case "help":
 			System.out.println(
-					"Write :\n| 'set' + <port> + <host> to set a connection with a peer \n| 'list' to print the peers \n| 'Q' to quit \n| 'chat' to send message to all connected peers \n| 'file' to send a file to a specific peer");
+					"Write :\n| 'set' + <port> + <host> to set a connection with a peer \n| 'list' to print the connected peers \n| 'Q' to quit \n| 'chat' to start chat-mode and send message to all connected peers \n| 'file' to start file-mode and send a file to a specific peer");
 			break;
 		case "chat":
 			chatMode();
