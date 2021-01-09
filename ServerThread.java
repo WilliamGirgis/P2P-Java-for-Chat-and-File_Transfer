@@ -19,7 +19,8 @@ public class ServerThread extends Thread {
 	File file = null;
 	Boolean isListenMode = false;
 	boolean isWriteActivated = false;
-
+    byte[][] buffers = new byte[1][1];
+	
 	public ServerThread(int port) throws IOException {
 		runPeerServer(port);
 
@@ -134,6 +135,7 @@ public class ServerThread extends Thread {
 	public void readFile(String fileLocation, int socketIndex) throws IOException {
 		file = new File(fileLocation);
 		FileInputStream fis = new FileInputStream(file);
+//		BufferedInputStream bos = new BufferedInputStream(fis);
 		byte[] buffer = new byte[(int) file.length()];
 		while (fis.read(buffer) != -1) {
 			System.out.println(buffer.length);
@@ -141,7 +143,7 @@ public class ServerThread extends Thread {
 		}
 		System.out.println("Done");
 		fis.close();
-		System.out.println("FileOutputStream closed");
+		System.out.println("FileInputStream closed");
 		output[socketIndex].close();
 		System.out.println("OutputStream closed");
 	}
@@ -149,28 +151,40 @@ public class ServerThread extends Thread {
 	public void writeFile(InputStream is) throws IOException {
 
 		FileOutputStream fos = null;
-		long filesize = 600000000;
+		int filesize = 2047483647;
 		byte[] buffer = new byte[(int) filesize];
 		int read = 0;
-		int totalRead = 0;
-		long rest = filesize;
-
-		try {
-			fos = new FileOutputStream("Output.txt");
+		int total = 0;
+		int rest = filesize;
+        long chrono = System.currentTimeMillis();// Start Chrono
+		try { 
+			fos = new FileOutputStream("Output.exe");
+			BufferedOutputStream bos = new BufferedOutputStream(fos);
 			System.out.println("Waiting for packets..");
-			while ((read = is.read(buffer, 0, (int) Math.min(buffer.length, rest))) != -1) {
-				totalRead += read;
+			while ((read = is.read(buffer, 0,Math.min(buffer.length, rest))) != -1) {
+				total += read;
 				rest -= read;
-				System.out.println("read " + totalRead + " bytes.");
-				fos.write(buffer, 0, read);
+				System.out.println("read " + total + " bytes.");
+				bos.write(buffer, 0, read);
+				bos.flush();
 			}
+			System.out.println("Total byte(s) read: "+total + " byte(s)");
 		} catch (IOException e) {
 			e.printStackTrace();
 			fos.close();
-			System.out.println("FileOutputStream closed");
 			is.close();
-			System.out.println("InputStream closed");
+		} catch (IndexOutOfBoundsException e) {
+			System.out.println("File too BIG");
+		} catch (OutOfMemoryError e) {
+			System.out.println("The amount of the memory available in the JVM is out of range");
 		}
+		System.out.println("File Downloaded");
+		long result = System.currentTimeMillis() - chrono; // Store the time taken to read all the bytes
+		System.out.println("Executed in: " +result + "ms (" + (result/1000)+ "s)" );
+		fos.close();
+		System.out.println("FileOutputStream closed successfully.");
+		is.close();
+		System.out.println("InputStream closed successfully.");
 	}
 
 	/*
